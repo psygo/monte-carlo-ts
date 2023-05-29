@@ -24,6 +24,39 @@ function gaussianRandom(mean: number = 0, stdev: number = 1) {
   return z * stdev + mean;
 }
 
+/**
+ * Uses `mean +- 4*stdev` as the width.
+ */
+function binGaussianDistribution(
+  data: number[],
+  mean: number = 0,
+  stdev: number = 1,
+  numberOfBins: number = 100
+) {
+  const start = mean - 4 * stdev;
+  const end = mean + 4 * stdev;
+  const step = Math.abs(start - end) / numberOfBins;
+
+  const bins: Array<number> = Array.from(
+    { length: numberOfBins },
+    (_: number, idx: number) => start + idx * step
+  );
+
+  const binned: Array<number> = Array(numberOfBins).fill(0);
+
+  const dataLength = data.length;
+  for (let i = 0; i < dataLength; i++) {
+    const datum = data[i];
+
+    // TODO: This isn't really that robust, I don't know if it works around the edges.
+    const binIdx = bins.findIndex((v) => v >= datum);
+
+    binned[binIdx]++;
+  }
+
+  return { bins, binned };
+}
+
 const App = () => {
   /*
    * You must register optional elements before using the chart,
@@ -33,15 +66,17 @@ const App = () => {
     Chart.register(Title, Tooltip, Legend, Colors);
   });
 
-  const idx = Array.from({ length: 1000 }, (_: number, idx: number) => idx);
-  const randomData = Array.from({ length: 1000 }, () => gaussianRandom());
+  const [mean, stdev] = [0, 1]
+  const randomData = Array.from({ length: 10_000 }, () => gaussianRandom(mean, stdev));
+
+  const { bins, binned } = binGaussianDistribution(randomData, mean, stdev, 100);
 
   const chartData: ChartData = {
-    labels: idx,
+    labels: bins,
     datasets: [
       {
         label: "Bins",
-        data: randomData,
+        data: binned,
       },
     ],
   };
